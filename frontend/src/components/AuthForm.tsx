@@ -2,8 +2,8 @@ import { useState } from "react";
 import { LogIn, UserPlus } from "lucide-react";
 
 interface AuthFormProps {
-  onLogin: (username: string, password: string) => string | null;
-  onSignup: (username: string, password: string) => string | null;
+  onLogin: (username: string, password: string) => Promise<string | null>;
+  onSignup: (username: string, password: string) => Promise<string | null>;
 }
 
 const AuthForm = ({ onLogin, onSignup }: AuthFormProps) => {
@@ -11,12 +11,16 @@ const AuthForm = ({ onLogin, onSignup }: AuthFormProps) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+    setLoading(true);
     const result = isSignup
-      ? onSignup(username.trim(), password)
-      : onLogin(username.trim(), password);
+      ? await onSignup(username.trim(), password)
+      : await onLogin(username.trim(), password);
+    setLoading(false);
     if (result) setError(result);
   };
 
@@ -48,10 +52,11 @@ const AuthForm = ({ onLogin, onSignup }: AuthFormProps) => {
           {error && <p className="text-xs text-destructive">{error}</p>}
           <button
             type="submit"
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-3 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90"
+            disabled={loading}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-3 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
           >
             {isSignup ? <UserPlus size={16} /> : <LogIn size={16} />}
-            {isSignup ? "Sign Up" : "Sign In"}
+            {isSignup ? (loading ? "Signing up..." : "Sign Up") : (loading ? "Signing in..." : "Sign In")}
           </button>
         </form>
 
