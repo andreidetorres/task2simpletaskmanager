@@ -1,8 +1,9 @@
 import { useState, useCallback } from "react";
 
 const SESSION_KEY = "task-manager-session";
+const TOKEN_KEY = "task-manager-token";
 const USERS_KEY = "task-manager-users";
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3000";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
 
 type User = { username: string; password: string };
 
@@ -24,23 +25,21 @@ export function useAuth() {
   );
 
   const login = useCallback(async (username: string, password: string): Promise<string | null> => {
-    // Try backend first
     try {
-      const res = await fetch(`${API_BASE}/login`, {
+      const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
       const data = await res.json();
-      if (res.ok) {
-        localStorage.setItem(SESSION_KEY, data.username);
-        setCurrentUser(data.username);
+      if (res.ok && data.success) {
+        localStorage.setItem(SESSION_KEY, data.data.user.username);
+        localStorage.setItem(TOKEN_KEY, data.data.token);
+        setCurrentUser(data.data.user.username);
         return null;
       }
-      // Backend responded but with an error
-      return data?.error || 'Login failed.';
+      return data?.message || 'Login failed.';
     } catch (err: any) {
-      // Network error -> fallback to local storage
       const users = getLocalUsers();
       const user = users.find((u) => u.username === username);
       if (!user) return 'Account not found (and backend unreachable).';
@@ -53,23 +52,22 @@ export function useAuth() {
 
   const signup = useCallback(async (username: string, password: string): Promise<string | null> => {
     if (username.length < 3) return 'Username must be at least 3 characters.';
-    if (password.length < 4) return 'Password must be at least 4 characters.';
-    // Try backend first
+    if (password.length < 6) return 'Password must be at least 6 characters.';
     try {
-      const res = await fetch(`${API_BASE}/signup`, {
+      const res = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
       const data = await res.json();
-      if (res.ok) {
-        localStorage.setItem(SESSION_KEY, data.username);
-        setCurrentUser(data.username);
+      if (res.ok && data.success) {
+        localStorage.setItem(SESSION_KEY, data.data.user.username);
+        localStorage.setItem(TOKEN_KEY, data.data.token);
+        setCurrentUser(data.data.user.username);
         return null;
       }
-      return data?.error || 'Signup failed.';
+      return data?.message || 'Signup failed.';
     } catch (err) {
-      // Network error -> fallback to local storage signup
       const users = getLocalUsers();
       if (users.find((u) => u.username === username)) return 'Username already registered (local).';
       users.push({ username, password });
@@ -82,6 +80,7 @@ export function useAuth() {
 
   const logout = useCallback(() => {
     localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(TOKEN_KEY);
     setCurrentUser(null);
   }, []);
 
