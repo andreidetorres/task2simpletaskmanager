@@ -9,17 +9,17 @@ import { ClipboardList, LogOut, Search } from "lucide-react";
 type Filter = "all" | "active" | "completed";
 
 const Index = () => {
-  const { currentUser, login, signup, logout } = useAuth();
+  const { currentUser, currentUserId, login, signup, logout } = useAuth();
 
   if (!currentUser) {
     return <AuthForm onLogin={login} onSignup={signup} />;
   }
 
-  return <TaskDashboard user={currentUser} onLogout={logout} />;
+  return <TaskDashboard user={currentUser} userId={currentUserId} onLogout={logout} />;
 };
 
-const TaskDashboard = ({ user, onLogout }: { user: string; onLogout: () => void }) => {
-  const { tasks, addTask, toggleTask, deleteTask, editTask } = useTasks(user);
+const TaskDashboard = ({ user, userId, onLogout }: { user: string; userId: string; onLogout: () => void }) => {
+  const { tasks, addTask, toggleTask, deleteTask, editTask } = useTasks(userId);
   const [filter, setFilter] = useState<Filter>("all");
   const [searchQuery, setSearchQuery] = useState("");
 

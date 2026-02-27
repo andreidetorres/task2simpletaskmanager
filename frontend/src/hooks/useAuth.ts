@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 
-const SESSION_KEY = "task-manager-session";
+const SESSION_KEY = "task-manager-session"; // stores userId
+const SESSION_USER_KEY = "task-manager-session-username"; // stores username
 const TOKEN_KEY = "task-manager-token";
 const USERS_KEY = "task-manager-users";
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
@@ -21,6 +22,9 @@ function saveLocalUsers(users: User[]) {
 
 export function useAuth() {
   const [currentUser, setCurrentUser] = useState<string | null>(() =>
+    localStorage.getItem(SESSION_USER_KEY)
+  );
+  const [currentUserId, setCurrentUserId] = useState<string | null>(() =>
     localStorage.getItem(SESSION_KEY)
   );
 
@@ -33,9 +37,11 @@ export function useAuth() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        localStorage.setItem(SESSION_KEY, data.data.user.username);
+        localStorage.setItem(SESSION_KEY, data.data.user.id.toString());
+        localStorage.setItem(SESSION_USER_KEY, data.data.user.username);
         localStorage.setItem(TOKEN_KEY, data.data.token);
         setCurrentUser(data.data.user.username);
+        setCurrentUserId(data.data.user.id.toString());
         return null;
       }
       return data?.message || 'Login failed.';
@@ -45,7 +51,9 @@ export function useAuth() {
       if (!user) return 'Account not found (and backend unreachable).';
       if (user.password !== password) return 'Incorrect password.';
       localStorage.setItem(SESSION_KEY, username);
+      localStorage.setItem(SESSION_USER_KEY, username);
       setCurrentUser(username);
+      setCurrentUserId(username);
       return null;
     }
   }, []);
@@ -61,9 +69,11 @@ export function useAuth() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        localStorage.setItem(SESSION_KEY, data.data.user.username);
+        localStorage.setItem(SESSION_KEY, data.data.user.id.toString());
+        localStorage.setItem(SESSION_USER_KEY, data.data.user.username);
         localStorage.setItem(TOKEN_KEY, data.data.token);
         setCurrentUser(data.data.user.username);
+        setCurrentUserId(data.data.user.id.toString());
         return null;
       }
       return data?.message || 'Signup failed.';
@@ -73,16 +83,20 @@ export function useAuth() {
       users.push({ username, password });
       saveLocalUsers(users);
       localStorage.setItem(SESSION_KEY, username);
+      localStorage.setItem(SESSION_USER_KEY, username);
       setCurrentUser(username);
+      setCurrentUserId(username);
       return null;
     }
   }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(SESSION_USER_KEY);
     localStorage.removeItem(TOKEN_KEY);
     setCurrentUser(null);
+    setCurrentUserId(null);
   }, []);
 
-  return { currentUser, login, signup, logout };
+  return { currentUser, currentUserId, login, signup, logout };
 }
