@@ -18,8 +18,9 @@ export function useTasks(user: string) {
       if (res.ok && json.success) {
         setTasks(json.data.tasks.map((t: any) => ({
           ...t,
-          id: t.id.toString(), // Must map database ID number to frontend ID string
-          createdAt: new Date(t.createdAt)
+          id: t.id.toString(),
+          createdAt: new Date(t.createdAt),
+          deadline: t.deadline ? new Date(t.deadline) : null, // ← new
         })));
       }
     } catch (err) {
@@ -27,14 +28,12 @@ export function useTasks(user: string) {
     }
   }, []);
 
-  // Fetch immediately upon mount when user is known
   useEffect(() => {
-    if (user) {
-      fetchTasks();
-    }
+    if (user) fetchTasks();
   }, [user, fetchTasks]);
 
-  const addTask = useCallback(async (title: string) => {
+  // ── ADD TASK with optional deadline ──────────────────────────────────────
+  const addTask = useCallback(async (title: string, deadline?: Date | null) => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) return;
     try {
@@ -44,14 +43,18 @@ export function useTasks(user: string) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ title })
+        body: JSON.stringify({
+          title,
+          deadline: deadline ? deadline.toISOString() : null, // ← new
+        })
       });
       const json = await res.json();
       if (res.ok && json.success) {
         const newTask = {
           ...json.data.task,
           id: json.data.task.id.toString(),
-          createdAt: new Date(json.data.task.createdAt)
+          createdAt: new Date(json.data.task.createdAt),
+          deadline: json.data.task.deadline ? new Date(json.data.task.deadline) : null, // ← new
         };
         setTasks((prev) => [newTask, ...prev]);
       }
@@ -60,14 +63,13 @@ export function useTasks(user: string) {
     }
   }, []);
 
-  const toggleTask = useCallback(async (id: string) => {
+  // ── SET DEADLINE on existing task ─────────────────────────────────────────
+  const setDeadline = useCallback(async (id: string, deadline: Date | null) => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) return;
-    const taskToToggle = tasks.find(t => t.id === id);
-    if (!taskToToggle) return;
 
-    // Optistic UI update
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)));
+    const previousTasks = [...tasks];
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, deadline } : t)));
 
     try {
       const res = await fetch(`${API_BASE}/tasks/${id}`, {
@@ -76,24 +78,44 @@ export function useTasks(user: string) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        // send backend the expected value
-        body: JSON.stringify({ completed: !taskToToggle.completed })
+        body: JSON.stringify({ deadline: deadline ? deadline.toISOString() : null })
+      });
+      if (!res.ok) setTasks(previousTasks);
+    } catch (err) {
+      console.error("Set deadline failed", err);
+      setTasks(previousTasks);
+    }
+  }, [tasks]);
+
+  const toggleTask = useCallback(async (id: string) => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) return;
+    const taskToToggle = tasks.find(t => t.id === id);
+    if (!taskToToggle) return;
+
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status: t.status === "active" ? "done" : "active" } : t)));
+
+    try {
+      const res = await fetch(`${API_BASE}/tasks/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: taskToToggle.status === "active" ? "done" : "active" })
       });
       if (!res.ok) {
-        // Revert UI if failure
-        setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)));
+        setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status: t.status === "active" ? "done" : "active" } : t)));
       }
     } catch (err) {
       console.error("Toggle task failed", err);
-      // Revert UI if failure
-      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)));
+      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status: t.status === "active" ? "done" : "active" } : t)));
     }
   }, [tasks]);
 
   const deleteTask = useCallback(async (id: string) => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) return;
-    // Optimistic UI update
     const previousTasks = [...tasks];
     setTasks((prev) => prev.filter((t) => t.id !== id));
 
@@ -102,9 +124,7 @@ export function useTasks(user: string) {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (!res.ok) {
-        setTasks(previousTasks);
-      }
+      if (!res.ok) setTasks(previousTasks);
     } catch (err) {
       console.error("Delete task failed", err);
       setTasks(previousTasks);
@@ -114,7 +134,6 @@ export function useTasks(user: string) {
   const editTask = useCallback(async (id: string, title: string) => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) return;
-
     const previousTasks = [...tasks];
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, title } : t)));
 
@@ -127,14 +146,12 @@ export function useTasks(user: string) {
         },
         body: JSON.stringify({ title })
       });
-      if (!res.ok) {
-        setTasks(previousTasks);
-      }
+      if (!res.ok) setTasks(previousTasks);
     } catch (err) {
       console.error("Edit task failed", err);
       setTasks(previousTasks);
     }
   }, [tasks]);
 
-  return { tasks, addTask, toggleTask, deleteTask, editTask };
+  return { tasks, addTask, toggleTask, deleteTask, editTask, setDeadline };
 }

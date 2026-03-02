@@ -5,8 +5,8 @@ const asyncHandler = (fn) => (req, res, next) =>
 
 /**
  * GET /api/users/me
- * Triggered by: frontend on page load to get the logged-in user's username
- * Powers the greeting: "Hi username · 4 tasks remaining"
+ * Triggered by: frontend on page load to get the logged-in user's email
+ * Powers the greeting: "Hi andreidetorres@gmail.com · 4 tasks remaining"
  */
 const getMe = asyncHandler(async (req, res) => {
     const user = await userService.getUserById(req.user.id);

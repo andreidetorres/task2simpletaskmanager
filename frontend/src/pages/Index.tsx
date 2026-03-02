@@ -19,7 +19,7 @@ const Index = () => {
 };
 
 const TaskDashboard = ({ user, userId, onLogout }: { user: string; userId: string; onLogout: () => void }) => {
-  const { tasks, addTask, toggleTask, deleteTask, editTask } = useTasks(userId);
+  const { tasks, addTask, toggleTask, deleteTask, editTask, setDeadline } = useTasks(userId);
   const [filter, setFilter] = useState<Filter>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -27,12 +27,12 @@ const TaskDashboard = ({ user, userId, onLogout }: { user: string; userId: strin
     const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase());
     if (!matchesSearch) return false;
 
-    if (filter === "active") return !t.completed;
-    if (filter === "completed") return t.completed;
+    if (filter === "active") return t.status === "active";
+    if (filter === "completed") return t.status === "done";
     return true;
   });
 
-  const activeCount = tasks.filter((t) => !t.completed).length;
+  const activeCount = tasks.filter((t) => t.status === "active").length;
 
   const filters: { key: Filter; label: string }[] = [
     { key: "all", label: "All" },
@@ -105,6 +105,7 @@ const TaskDashboard = ({ user, userId, onLogout }: { user: string; userId: strin
               onToggle={toggleTask}
               onDelete={deleteTask}
               onEdit={editTask}
+              onSetDeadline={setDeadline}   // ← add this
             />
           ))}
         </div>

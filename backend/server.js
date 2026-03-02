@@ -8,6 +8,7 @@ const corsOptions = require("./config/cors");
 const routes = require("./routes/index");
 const errorMiddleware = require("./middlewares/error.middleware");
 
+
 const app = express();
 
 // ── Global Middleware ──────────────────────────────────────────────────────

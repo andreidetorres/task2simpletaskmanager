@@ -26,7 +26,7 @@ const authMiddleware = async (req, res, next) => {
         // findByPk = Sequelize's "find by primary key" (replaces Mongoose's findById)
         // attributes: never expose the password field downstream
         const user = await User.findByPk(decoded.id, {
-            attributes: ["id", "username", "createdAt"],
+            attributes: ["id", "email", "createdAt"],
         });
 
         if (!user) {

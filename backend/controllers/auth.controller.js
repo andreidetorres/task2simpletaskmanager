@@ -6,8 +6,8 @@ const asyncHandler = (fn) => (req, res, next) =>
 /**
  * POST /api/auth/register
  * Triggered by: Sign Up screen → Sign Up button
- * Body: { username, password }
- * Returns: { token, user: { id, username } }
+ * Body: { email, password }
+ * Returns: { token, user: { id, email } }
  */
 const register = asyncHandler(async (req, res) => {
     const result = await authService.register(req.body);
@@ -21,8 +21,8 @@ const register = asyncHandler(async (req, res) => {
 /**
  * POST /api/auth/login
  * Triggered by: Sign In screen → Sign In button
- * Body: { username, password }
- * Returns: { token, user: { id, username } }
+ * Body: { email, password }
+ * Returns: { token, user: { id, email } }
  */
 const login = asyncHandler(async (req, res) => {
     const result = await authService.login(req.body);

@@ -7,7 +7,7 @@ const User = require("../models/user.model");
  */
 const getUserById = async (userId) => {
     const user = await User.findByPk(userId, {
-        attributes: ["id", "username", "createdAt"],
+        attributes: ["id", "email", "createdAt"],
     });
 
     if (!user) {
@@ -16,7 +16,7 @@ const getUserById = async (userId) => {
         throw error;
     }
 
-    return { id: user.id, username: user.username, createdAt: user.createdAt };
+    return { id: user.id, email: user.email, createdAt: user.createdAt };
 };
 
 module.exports = { getUserById };

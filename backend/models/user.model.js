@@ -8,16 +8,16 @@ const User = sequelize.define(
     "User",
     {
         id: {
-            type: DataTypes.INTEGER,
-            autoIncrement: true,
+            type: DataTypes.UUID,
+            defaultValue: DataTypes.UUIDV4,
             primaryKey: true,
         },
-        username: {
+        email: {
             type: DataTypes.STRING,
             allowNull: false,
             unique: true,
             validate: {
-                len: { args: [3, 255], msg: "Username must be at least 3 characters" },
+                isEmail: { msg: "Please enter a valid email address" },
             },
         },
         password: {

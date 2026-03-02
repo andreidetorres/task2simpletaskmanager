@@ -2,20 +2,12 @@ const { DataTypes } = require("sequelize");
 const { sequelize } = require("../config/db");
 const User = require("./user.model");
 
-// MySQL table: tasks
-// Columns: id, title, status, userId, createdAt, updatedAt
-//
-// Maps directly to the UI:
-//   title     → "ojt", "cooking", "gym", "basketball"
-//   status    → "active" = empty circle | "done" = orange check + strikethrough
-//   createdAt → "Feb 25, 2026, 02:57 PM" shown under each task title
-//   userId    → foreign key — each task belongs to one user
 const Task = sequelize.define(
     "Task",
     {
         id: {
-            type: DataTypes.INTEGER,
-            autoIncrement: true,
+            type: DataTypes.UUID,
+            defaultValue: DataTypes.UUIDV4,
             primaryKey: true,
         },
         title: {
@@ -26,13 +18,18 @@ const Task = sequelize.define(
                 len: { args: [1, 200], msg: "Title cannot exceed 200 characters" },
             },
         },
-        completed: {
-            type: DataTypes.BOOLEAN,
+        status: {
+            type: DataTypes.STRING(10),
             allowNull: false,
-            defaultValue: false,
+            defaultValue: "active",
+        },
+        deadline: {
+            type: DataTypes.DATE,   // ← new field
+            allowNull: true,
+            defaultValue: null,
         },
         userId: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.UUID,
             allowNull: false,
             references: { model: "users", key: "id" },
         },
@@ -43,7 +40,6 @@ const Task = sequelize.define(
     }
 );
 
-// Associations
 User.hasMany(Task, { foreignKey: "userId", onDelete: "CASCADE" });
 Task.belongsTo(User, { foreignKey: "userId" });
 

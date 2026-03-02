@@ -10,36 +10,36 @@ const generateToken = (userId) =>
  * Register — Sign Up screen
  * Creates a new user. Throws 409 if email already exists.
  */
-const register = async ({ username, password }) => {
-    const existing = await User.findOne({ where: { username } });
+const register = async ({ email, password }) => {
+    const existing = await User.findOne({ where: { email } });
     if (existing) {
-        const error = new Error("An account with this username already exists");
+        const error = new Error("An account with this email already exists");
         error.statusCode = 409;
         throw error;
     }
 
-    const user = await User.create({ username, password });
+    const user = await User.create({ email, password });
     const token = generateToken(user.id);
 
-    return { token, user: { id: user.id, username: user.username } };
+    return { token, user: { id: user.id, email: user.email } };
 };
 
 /**
  * Login — Sign In screen
  * Verifies credentials and returns a JWT. Throws 401 if invalid.
  */
-const login = async ({ username, password }) => {
-    const user = await User.findOne({ where: { username } });
+const login = async ({ email, password }) => {
+    const user = await User.findOne({ where: { email } });
 
     if (!user || !(await user.comparePassword(password))) {
-        const error = new Error("Invalid username or password");
+        const error = new Error("Invalid email or password");
         error.statusCode = 401;
         throw error;
     }
 
     const token = generateToken(user.id);
 
-    return { token, user: { id: user.id, username: user.username } };
+    return { token, user: { id: user.id, email: user.email } };
 };
 
 module.exports = { register, login };

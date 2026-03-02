@@ -25,7 +25,23 @@ const AuthForm = ({ onLogin, onSignup }: AuthFormProps) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
+
+      {/* ── B1G Corporation Header ── */}
+      <div className="mb-6 w-full max-w-sm rounded-xl px-6 py-4"
+        style={{ background: "linear-gradient(135deg, #4a1a8a 0%, #6b2fa0 50%, #5b2d8e 100%)" }}
+      >
+        <div className="flex flex-col items-center gap-1">
+          <span
+            className="text-white tracking-widest text-xl font-semibold uppercase opacity-100"
+            style={{ fontFamily: "'Oswald', sans-serif", letterSpacing: "0.3em" }}
+          >
+            Task Manager
+          </span>
+        </div>
+      </div>
+
+      {/* ── Auth Card ── */}
       <div className="w-full max-w-sm rounded-xl border border-border bg-card p-8 shadow-sm">
         <h1 className="text-xl font-bold text-center text-foreground mb-1">
           {isSignup ? "Create Account" : "Sign In"}
