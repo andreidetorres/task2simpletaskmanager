@@ -1,13 +1,7 @@
-const jwt = require("jsonwebtoken");
-const { JWT_SECRET } = require("../config/env");
-const User = require("../models/user.model");
+const supabase = require("../config/supabase");
 
 /**
- * Protects routes by verifying the JWT in the Authorization header.
- * Attaches the authenticated user to req.user for all downstream controllers.
- *
- * Frontend sends every protected request as:
- *   Authorization: Bearer <token>
+ * Verifies the Supabase session token instead of our custom JWT
  */
 const authMiddleware = async (req, res, next) => {
     try {
@@ -21,22 +15,19 @@ const authMiddleware = async (req, res, next) => {
         }
 
         const token = authHeader.split(" ")[1];
-        const decoded = jwt.verify(token, JWT_SECRET);
 
-        // findByPk = Sequelize's "find by primary key" (replaces Mongoose's findById)
-        // attributes: never expose the password field downstream
-        const user = await User.findByPk(decoded.id, {
-            attributes: ["id", "email", "createdAt"],
-        });
+        // Verify token with Supabase Auth
+        const { data, error } = await supabase.auth.getUser(token);
 
-        if (!user) {
+        if (error || !data.user) {
             return res.status(401).json({
                 success: false,
-                message: "You must be logged in to access this resource",
+                message: "Invalid or expired token",
             });
         }
 
-        req.user = user;
+        // Attach user to request
+        req.user = { id: data.user.id, email: data.user.email };
         next();
     } catch {
         return res.status(401).json({

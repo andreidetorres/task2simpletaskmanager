@@ -1,53 +1,57 @@
-const jwt = require("jsonwebtoken");
-const User = require("../models/user.model");
 const supabase = require("../config/supabase");
-const { JWT_SECRET, JWT_EXPIRES_IN } = require("../config/env");
-
-const generateToken = (userId) =>
-    jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+const User = require("../models/user.model");
 
 /**
- * Register — Sign Up screen
- * 1. Creates user in Supabase Auth (visible in Authentication tab)
- * 2. Saves user in users table using the same UUID from Supabase Auth
+ * Register — Sign Up
+ * Flow:
+ * 1. Create user in Supabase Auth (stores email + hashed password)
+ * 2. Save user in our users table (id + email only, NO password)
+ * 3. Return session token
  */
 const register = async ({ email, password }) => {
-    // Step 1: Create in Supabase Auth
-    const { data, error } = await supabase.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true, // skips email verification
-    });
+    // Step 1: Create in Supabase Auth → appears in Authentication tab
+    const { data: authData, error: authError } =
+        await supabase.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true, // skip email verification
+        });
 
-    if (error) {
-        const err = new Error(error.message);
-        err.statusCode = error.status || 400;
+    if (authError) {
+        const err = new Error(authError.message);
+        err.statusCode = 409;
         throw err;
     }
 
-    const supabaseUserId = data.user.id;
+    // Step 2: Save in our users table — NO password
+    await User.create({
+        id: authData.user.id,   // same UUID from Supabase Auth
+        email: authData.user.email,
+    });
 
-    // Step 2: Save to your users table using Supabase Auth UUID
-    const existing = await User.findOne({ where: { email } });
-    if (!existing) {
-        await User.create({
-            id: supabaseUserId, // use Supabase Auth UUID
-            email,
-            password,           // will be hashed by beforeCreate hook
-        });
+    // Step 3: Sign in to get session token
+    const { data: sessionData, error: sessionError } =
+        await supabase.auth.signInWithPassword({ email, password });
+
+    if (sessionError) {
+        const err = new Error(sessionError.message);
+        err.statusCode = 401;
+        throw err;
     }
 
-    const token = generateToken(supabaseUserId);
-    return { token, user: { id: supabaseUserId, email } };
+    return {
+        token: sessionData.session.access_token,
+        user: { id: authData.user.id, email: authData.user.email },
+    };
 };
 
 /**
- * Login — Sign In screen
- * 1. Verifies credentials via Supabase Auth
- * 2. Fetches user from your users table for app data
+ * Login — Sign In
+ * Flow:
+ * 1. Verify credentials via Supabase Auth
+ * 2. Return session token + user id
  */
 const login = async ({ email, password }) => {
-    // Step 1: Verify via Supabase Auth
     const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -59,16 +63,10 @@ const login = async ({ email, password }) => {
         throw err;
     }
 
-    // Step 2: Get user from your users table
-    const user = await User.findOne({ where: { email } });
-    if (!user) {
-        const err = new Error("User not found in database");
-        err.statusCode = 404;
-        throw err;
-    }
-
-    const token = generateToken(user.id);
-    return { token, user: { id: user.id, email: user.email } };
+    return {
+        token: data.session.access_token,
+        user: { id: data.user.id, email: data.user.email },
+    };
 };
 
 module.exports = { register, login };
